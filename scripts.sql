@@ -3,7 +3,7 @@ create table tb_usuario (
  cd_usuario number(10) primary key,
  nm_usuario varchar2(40) not null unique,
  ds_senha varchar2(200) not null,
- ds_perfil varchar2(10) default 'USUARIO' not null check (ds_perfil in ('USUARIO','ADMIN'))
+ ds_perfil number(1) default 0 not null check (ds_perfil in (0,1))
 );
 create sequence sq_tb_usuario start with 1 increment by 1 nocache;
 
@@ -63,8 +63,6 @@ create index ix_recompensa_historico on tb_usuario_recompensa(cd_recompensa);
 insert into tb_missao (cd_missao,nm_nome,ds_descricao,nr_pontos,st_ativo,tp_dificuldade) values (sq_tb_missao.nextval,'Separar recicláveis','Separe os resíduos recicláveis de hoje.',20,1,1);
 insert into tb_recompensa values (sq_tb_recompensa.nextval,'Selo Gaia','Resgate seu selo de participação.',50,1);
 commit;
--- Cadastre sua conta pela API antes de promovê-la. Troque o nome abaixo:
--- update tb_usuario set ds_perfil='ADMIN' where nm_usuario='seu_usuario';
--- commit;
--- Faça logout e login novamente após mudar o perfil.
+-- No cadastro pela API, envie perfil=0 (usuário) ou perfil=1 (administrador).
+-- Para um schema já existente com perfil textual, execute atualizar_perfil.sql.
 

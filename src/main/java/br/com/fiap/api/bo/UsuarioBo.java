@@ -3,6 +3,7 @@ package br.com.fiap.api.bo;
 import br.com.fiap.api.config.Senha;
 import br.com.fiap.api.dao.UsuarioDao;
 import br.com.fiap.api.dto.LoginRequestDto;
+import br.com.fiap.api.dto.UsuarioCadastroRequestDto;
 import br.com.fiap.api.dto.UsuarioAtualizacaoRequestDto;
 import br.com.fiap.api.exception.EntidadeNaoEncontradaException;
 import br.com.fiap.api.model.Usuario;
@@ -20,10 +21,11 @@ public class UsuarioBo {
         this.dao = dao;
     }
 
-    public Usuario cadastrar(LoginRequestDto dto) throws SQLException {
+    public Usuario cadastrar(UsuarioCadastroRequestDto dto) throws SQLException {
         Usuario usuario = new Usuario();
         usuario.setNomeUsuario(dto.getNomeUsuario().toLowerCase(Locale.ROOT));
         usuario.setSenha(Senha.gerar(dto.getSenha()));
+        usuario.setPerfil(dto.getPerfil());
         dao.cadastrar(usuario);
         return usuario;
     }
