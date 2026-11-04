@@ -37,19 +37,19 @@ API REST da GAIA desenvolvida em **Java 21 e Spring Boot**, com banco de dados *
 4. Em **Environment variables** (use **Modify options > Environment variables** se necessário), configure:
 
 ```dotenv
-   ORACLE\_URL=jdbc:oracle:thin:@oracle.fiap.com.br:1521:orcl
-   ORACLE\_USER=seu\_usuario
-   ORACLE\_PASSWORD=sua\_senha
-   GAIA\_FRONTEND\_ORIGIN=http://localhost:5173
-   COOKIE\_SECURE=false
+   ORACLE_URL=jdbc:oracle:thin:@oracle.fiap.com.br:1521:orcl
+   ORACLE_USER=seu_usuario
+   ORACLE_PASSWORD=sua_senha
+   GAIA_FRONTEND_ORIGIN=http://localhost:5173
+   COOKIE_SECURE=false
    ```
 
-   Substitua os valores de exemplo pelos dados reais do Oracle Cloud da FIAP. A URL deve ser a **URL JDBC** fornecida para o banco.
+Substitua os valores de exemplo pelos dados reais do Oracle Cloud da FIAP. A URL deve ser a **URL JDBC** fornecida para o banco.
 
 5. Clique em **Apply > OK**, selecione `GAIA API` no topo do IntelliJ e clique em **Run**.
 6. Por padrão, a API inicia em **http://localhost:8080**.
 
-> A configuração de execução do IntelliJ é \*\*local\*\*: não precisa ser enviada ao GitHub. Para executar no Render ou em outra hospedagem, cadastre as variáveis no painel do próprio serviço.
+> A configuração de execução do IntelliJ é **local**: não precisa ser enviada ao GitHub. Para executar no Render ou em outra hospedagem, cadastre as variáveis no painel do próprio serviço.
 
 ## Variáveis de ambiente
 
@@ -57,17 +57,37 @@ O arquivo `src/main/resources/application.properties` usa variáveis de ambiente
 
 |Variável|Finalidade|Obrigatória para|
 |-|-|-|
-|`ORACLE\_URL`|Endereço JDBC do banco Oracle|API e banco|
-|`ORACLE\_USER`|Usuário do banco Oracle|API e banco|
-|`ORACLE\_PASSWORD`|Senha do banco Oracle|API e banco|
-|`GAIA\_FRONTEND\_ORIGIN`|Origem autorizada do frontend React (padrão: `http://localhost:5173`)|Integração com frontend|
+|`ORACLE_URL`|Endereço JDBC do banco Oracle|API e banco|
+|`ORACLE_USER`|Usuário do banco Oracle|API e banco|
+|`ORACLE_PASSWORD`|Senha do banco Oracle|API e banco|
+|`GAIA_FRONTEND_ORIGIN`|Origens autorizadas do frontend React, separadas por vírgula (padrão: `http://localhost:5173`)|Integração com frontend|
 |`PORT`|Porta HTTP utilizada pelo servidor (padrão: `8080`)|Opcional; hospedagem|
-|`COOKIE\_SECURE`|Exige HTTPS para envio de cookies quando `true` (padrão: `false`)|Cookies em produção|
-|`COOKIE\_SAME\_SITE`|Política SameSite do cookie de sessão (padrão: `strict`)|Cookies entre sites|
-|`GAIA\_N8N\_WEBHOOK\_URL`|URL de produção do Webhook do n8n|Chat da GAIA|
-|`GAIA\_N8N\_WEBHOOK\_KEY`|Chave de autenticação utilizada na integração com o Webhook|Chat da GAIA|
+|`COOKIE_SECURE`|Exige HTTPS para envio de cookies quando `true` (padrão: `false`)|Cookies em produção|
+|`COOKIE_SAME_SITE`|Política SameSite do cookie de sessão (padrão: `strict`)|Cookies entre sites|
+|`GAIA_N8N_WEBHOOK_URL`|URL de produção do Webhook do n8n|Chat da GAIA|
+|`GAIA_N8N_WEBHOOK_KEY`|Chave de autenticação utilizada na integração com o Webhook|Chat da GAIA|
 
 As variáveis obrigatórias do Oracle devem estar disponíveis **antes** de iniciar o Spring Boot. Não grave senhas ou chaves diretamente no `application.properties` nem as envie ao repositório.
+
+## Usar a API publicada no React local e na Vercel
+
+No painel **Environment** do Render, configure as duas origens sem barra no final:
+
+```dotenv
+GAIA_FRONTEND_ORIGIN=https://gaia-react-gamma.vercel.app,http://localhost:5173
+COOKIE_SAME_SITE=none
+COOKIE_SECURE=true
+```
+
+Salve as variáveis e faça um novo deploy da API com a versão atualizada do filtro CORS.
+
+No React local, crie `.env.local` na pasta do `package.json`:
+
+```dotenv
+VITE_API_URL=https://api-java-gaia.onrender.com
+```
+
+Reinicie `npm run dev`. Na Vercel, use a mesma `VITE_API_URL` e faça um novo deploy se alterar essa variável. As requisições devem manter `credentials: "include"`, pois a autenticação usa o cookie `JSESSIONID`. O navegador precisa permitir esse cookie entre sites.
 
 ## Configurar o chat da GAIA (`.env.chat`)
 
@@ -87,13 +107,15 @@ api-java-gaia/
 Conteúdo do `.env.chat`:
 
 ```dotenv
-GAIA\_N8N\_WEBHOOK\_URL=https://seu-n8n.app.n8n.cloud/webhook/gaia-chat
-GAIA\_N8N\_WEBHOOK\_KEY=sua\_chave\_do\_webhook
+GAIA_N8N_WEBHOOK_KEY=sua_chave_do_webhook
+
+GAIA_N8N_WEBHOOK_URL=https://henriquemunizz.app.n8n.cloud/webhook/gaia-chat
+
 ```
 
 * Use a **Production URL** do nó Webhook, e não a URL que contém `/webhook-test/`.
 * A chave deve corresponder à autenticação exigida pelo n8n. O workflow precisa estar **Published**.
-* **Atenção:** o Spring Boot não lê `.env.chat` automaticamente por padrão. Para garantir o funcionamento local, configure também `GAIA\_N8N\_WEBHOOK\_URL` e `GAIA\_N8N\_WEBHOOK\_KEY` em **Run > Edit Configurations > Environment variables**, com os mesmos valores do arquivo, a menos que haja um mecanismo específico de carregamento configurado.
+* **Atenção:** o Spring Boot não lê `.env.chat` automaticamente por padrão. Para garantir o funcionamento local, configure também `GAIA_N8N_WEBHOOK_URL` e `GAIA_N8N_WEBHOOK_KEY` em **Run > Edit Configurations > Environment variables**, com os mesmos valores do arquivo, a menos que haja um mecanismo específico de carregamento configurado.
 * O `.env.chat` é ignorado pelo `.gitignore` e **não deve ser enviado ao GitHub**, pois pode conter uma chave secreta.
 * Na hospedagem (por exemplo, Render), configure essas duas variáveis diretamente no painel **Environment**. O arquivo `.env.chat` é apenas para uso local.
 
@@ -101,9 +123,9 @@ GAIA\_N8N\_WEBHOOK\_KEY=sua\_chave\_do\_webhook
 
 Com a API em execução, utilize o Postman ou outro cliente HTTP. Primeiro, faça o cadastro em `POST /usuarios` e o login em `POST /usuarios/login`, mantendo o cookie de sessão. Em seguida, teste as operações de missões, recompensas e chat. Para que o chat responda, o Webhook de produção precisa estar acessível e retornar JSON com o campo `resposta`.
 
-O SQL não é executado automaticamente. Não existem credenciais do professor no projeto. Se já criou as tabelas antes da inclusão da dificuldade, execute atualizar\_dificuldade.sql. Se o perfil ainda é textual (ADMIN/USUARIO), pare a API e execute atualizar\_perfil.sql no mesmo schema antes de iniciar esta versão. Não execute scripts.sql novamente em um banco existente.
+O SQL não é executado automaticamente. Não existem credenciais do professor no projeto. Se já criou as tabelas antes da inclusão da dificuldade, execute atualizar_dificuldade.sql. Se o perfil ainda é textual (ADMIN/USUARIO), pare a API e execute atualizar_perfil.sql no mesmo schema antes de iniciar esta versão. Não execute scripts.sql novamente em um banco existente.
 
-A migração converte ADMIN para 1 e USUARIO para 0, preservando IDs, nomes, senhas, progresso e históricos. A coluna ds\_perfil passa a ser NUMBER(1), obrigatória, com padrão 0 e restrição para 0/1. A coluna ds\_perfil\_anterior conserva o texto anterior como respaldo da migração; não é usada pela API nem representa o perfil de novos cadastros. O bloco pode ser executado novamente após interrupção. DDL no Oracle confirma alterações automaticamente.
+A migração converte ADMIN para 1 e USUARIO para 0, preservando IDs, nomes, senhas, progresso e históricos. A coluna ds_perfil passa a ser NUMBER(1), obrigatória, com padrão 0 e restrição para 0/1. A coluna ds_perfil_anterior conserva o texto anterior como respaldo da migração; não é usada pela API nem representa o perfil de novos cadastros. O bloco pode ser executado novamente após interrupção. DDL no Oracle confirma alterações automaticamente.
 
 ## Estrutura
 
@@ -119,12 +141,12 @@ A migração converte ADMIN para 1 e USUARIO para 0, preservando IDs, nomes, 
 
 |**Tabela**|**Entrada manual**|**Automático**|
 |-|-|-|
-|tb\_usuario|nomeUsuario, senha, perfil (0 = usuário, 1 = administrador)|ID, hash de senha|
-|tb\_missao|nome, descricao, dificuldade, pontos, ativo|ID|
-|tb\_recompensa|nome, descricao, pontos (custo), ativo|ID|
-|tb\_usuario\_missao|ação de concluir|ID, usuário, missão, pontos e data|
-|tb\_usuario\_recompensa|ação de resgatar|ID, usuário, recompensa, custo e data|
-|tb\_usuario\_progresso|nenhum|total ganho, saldo disponível, quantidade de conclusões e data|
+|tb_usuario|nomeUsuario, senha, perfil (0 = usuário, 1 = administrador)|ID, hash de senha|
+|tb_missao|nome, descricao, dificuldade, pontos, ativo|ID|
+|tb_recompensa|nome, descricao, pontos (custo), ativo|ID|
+|tb_usuario_missao|ação de concluir|ID, usuário, missão, pontos e data|
+|tb_usuario_recompensa|ação de resgatar|ID, usuário, recompensa, custo e data|
+|tb_usuario_progresso|nenhum|total ganho, saldo disponível, quantidade de conclusões e data|
 
 Dificuldade: 1 = fácil, 2 = médio, 3 = difícil. Obrigatória e validada na API e no Oracle. O administrador define pontos separadamente. Ativo: 1 = ativo, 0 = inativo. A API bloqueia conclusão e resgate de itens inativos.
 
@@ -193,7 +215,7 @@ Identificador com formato inválido retorna 400. As listagens de missões e rec
 PUT /usuarios/me ou PUT /usuarios/{id}:
 
 ```json
-{"nomeUsuario":"debora\_novo","senha":"OutraSenhaForte123"}
+{"nomeUsuario":"debora_novo","senha":"OutraSenhaForte123"}
 
 ```
 
