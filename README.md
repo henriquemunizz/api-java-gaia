@@ -1,21 +1,13 @@
 # Gaia API — Maven, IntelliJ e Oracle
 
-## Referências do professor
-- Apostila16: Spring Boot, controllers REST, DTOs, ModelMapper, validação, DAOs com JDBC, DataSource, PreparedStatement e SQL separado.
-- Apostila13: ConnectionFactory, consulta por ID, listagem, atualização e exclusão física com DELETE, verificando o número de linhas alteradas.
-- ConnectionFactory foi adaptada ao DataSource da Apostila16, mantendo as credenciais em variáveis de ambiente. Cada operação fecha sua conexão; não há uma única conexão compartilhada entre requisições.
-- As apostilas consultadas não possuem BO. Foram acrescentadas duas BOs simples para concentrar as regras de usuários e pontos exigidas na avaliação. Sem JPA, Lombok, camada service ou mudança de framework.
-
 ## Abrir e executar
 1. Abra o pom.xml no IntelliJ como projeto Maven e carregue as dependências.
 2. Use JDK 21. O pom mantém as versões da Apostila16.
 3. Execute scripts.sql manualmente em um schema Oracle novo.
 4. Em Run > Edit Configurations > ApiApplication > Environment variables, configure:
-   - ORACLE_URL: jdbc:oracle:thin:@//HOST:1521/SERVICE_NAME ou a URL por SID do seu servidor.
+   - ORACLE_URL: jdbc:oracle:thin:@oracle.fiap.com.br:1521:orcl
    - ORACLE_USER: usuário do banco.
    - ORACLE_PASSWORD: senha do banco.
-   - GAIA_FRONTEND_ORIGIN: origem exata do front. Padrão: http://localhost:5173.
-   - COOKIE_SECURE: padrão false no desenvolvimento; true com HTTPS.
 5. Execute ApiApplication. Endereço padrão: http://localhost:8080.
 
 O SQL não é executado automaticamente. Não existem credenciais do professor no projeto.
@@ -119,7 +111,7 @@ POST /missoes ou PUT /missoes/{id}:
 Para recompensa, use /recompensas e omita dificuldade. Pontos representa o custo do resgate.
 
 ## Exclusão real
-DELETE agora executa DELETE FROM no Oracle, como na Apostila13.
+DELETE agora executa DELETE FROM no Oracle.
 - Missão ou recompensa sem histórico: exclui e retorna 204. Nova consulta retorna 404.
 - Missão ou recompensa com histórico: retorna 409 e mantém os dados. A chave estrangeira impede apagar um item usado. Para retirá-lo de circulação, use PUT com ativo=0.
 - Usuário: exclui a conta e seus registros de missão, recompensa e progresso em uma transação. Não exclui o catálogo de missões/recompensas nem os dados de outros usuários.
