@@ -17,7 +17,9 @@ public class CorsFilter extends org.springframework.web.filter.CorsFilter {
 
     private static UrlBasedCorsConfigurationSource configurar(String origem) {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of(origem));
+        config.setAllowedOrigins(List.of(origem.split(",")).stream()
+                .map(String::trim)
+                .toList());
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("Content-Type"));
         config.setAllowCredentials(true);
