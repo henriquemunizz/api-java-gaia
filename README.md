@@ -1,11 +1,5 @@
 # Gaia API — Maven, IntelliJ e Oracle
 
-## Referências do professor
-- Apostila16: Spring Boot, controllers REST, DTOs, ModelMapper, validação, DAOs com JDBC, DataSource, PreparedStatement e SQL separado.
-- Apostila13: ConnectionFactory, consulta por ID, listagem, atualização e exclusão física com DELETE, verificando o número de linhas alteradas.
-- ConnectionFactory foi adaptada ao DataSource da Apostila16, mantendo as credenciais em variáveis de ambiente. Cada operação fecha sua conexão; não há uma única conexão compartilhada entre requisições.
-- As apostilas consultadas não possuem BO. Foram acrescentadas duas BOs simples para concentrar as regras de usuários e pontos exigidas na avaliação. Sem JPA, Lombok, camada service ou mudança de framework.
-
 ## Abrir e executar
 1. Abra o pom.xml no IntelliJ como projeto Maven e carregue as dependências.
 2. Use JDK 21. O pom mantém as versões da Apostila16.
@@ -125,23 +119,5 @@ DELETE agora executa DELETE FROM no Oracle, como na Apostila13.
 - Usuário: exclui a conta e seus registros de missão, recompensa e progresso em uma transação. Não exclui o catálogo de missões/recompensas nem os dados de outros usuários.
 - Se a conta excluída for a conta da sessão atual, faz logout. Outras sessões dessa conta serão recusadas.
 - ID inexistente: retorna 404 quando a pessoa tem permissão de consultar/gerenciar o recurso.
-
-## Próximas etapas sob responsabilidade da equipe
-Validar rotas no Oracle, integrar o front, produzir MER e diagrama de classes compatíveis, PDF com prints reais, publicar no GitHub e fazer deploy.
-Preservar Home, Integrantes, FAQ, Sobre e Contato. A aba Solução terá Missões, Recompensas, login e controles de administrador.
-Na hospedagem, a configuração de domínio/cookie deve ser revisada conforme os endereços escolhidos: o padrão SameSite=Strict foi preparado para desenvolvimento no mesmo site (localhost), não para front e API em sites independentes.
-
-## Verificação desta revisão
-Execute ./mvnw.cmd test com JAVA_HOME apontando para o JDK 21. Os testes cobrem senha, permissões, sessão após exclusão/troca de senha, regras de pontos/transação, validação dos perfis no cadastro e gravação numérica pelo JDBC. O Surefire carrega o agente do Mockito na inicialização, evitando anexação dinâmica durante os testes.
-
-Em 03/11/2026, `mvn clean package` aprovou os 10 testes e o empacotamento. A migração foi aplicada no Oracle local com comparação dos dados antes/depois: 3 contas, credenciais, 3 progressos, 5 conclusões, 2 resgates e os catálogos foram preservados. O React validou cadastro/login dos dois perfis e CRUD de uma missão e uma recompensa temporárias. As duas novas contas de teste foram mantidas; os dois itens temporários foram excluídos com autorização.
-
-## Chat da Gaia
-
-Execute `atualizar_chat.sql` uma vez no schema existente, após criar as tabelas principais. Conversas e mensagens pertencem ao usuário identificado pela sessão. A exclusão da conta também remove suas conversas.
-
-Importe `n8n/gaia-chat.json` no n8n. No nó **Modelo de IA**, selecione uma credencial ou Gateway credits e um modelo Gemini disponível. No webhook, selecione Header Auth com nome `X-Gaia-Key` e um segredo exclusivo da integração. Publique o workflow e copie a Production URL.
-
-Na configuração de execução da API, defina `GAIA_N8N_WEBHOOK_URL` com essa URL e `GAIA_N8N_WEBHOOK_KEY` com o mesmo segredo. Reinicie a API. O arquivo local .env.chat, quando usado para guardar o segredo, precisa ser carregado na configuração de execução. Ele é ignorado pelo Git.
 
 GET e POST em `/usuarios/me/conversas` listam e criam conversas. GET em `/usuarios/me/conversas/{id}/mensagens` consulta o histórico. POST na mesma rota recebe texto (até 2000 caracteres) e requisicaoId (UUID). A API envia ao n8n nome de usuário, progresso, catálogo ativo, pergunta e até 20 mensagens recentes. O webhook deve devolver um objeto JSON com o campo resposta. A API grava a pergunta e a resposta juntas após uma resposta válida.
