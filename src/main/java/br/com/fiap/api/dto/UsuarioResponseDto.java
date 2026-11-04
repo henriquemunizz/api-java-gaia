@@ -8,7 +8,7 @@ public class UsuarioResponseDto {
     
     private String nomeUsuario;
     
-    private String perfil;
+    private int perfil;
 
     public UsuarioResponseDto() {}
 
@@ -18,6 +18,6 @@ public class UsuarioResponseDto {
     public String getNomeUsuario() { return nomeUsuario; }
     public void setNomeUsuario(String nomeUsuario) { this.nomeUsuario = nomeUsuario; }
 
-    public String getPerfil() { return perfil; }
-    public void setPerfil(String perfil) { this.perfil = perfil; }
+    public int getPerfil() { return perfil; }
+    public void setPerfil(int perfil) { this.perfil = perfil; }
 }

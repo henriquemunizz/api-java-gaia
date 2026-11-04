@@ -30,7 +30,7 @@ class AutenticacaoTests {
         assertEquals(403, assertThrows(ResponseStatusException.class, () -> auth.administrador(session)).getStatusCode().value());
         assertEquals(403, assertThrows(ResponseStatusException.class, () -> auth.proprioOuAdministrador(session, 2)).getStatusCode().value());
         assertEquals(usuario, auth.proprioOuAdministrador(session, 1));
-        usuario.setPerfil("ADMIN");
+        usuario.setPerfil(1);
         assertEquals(usuario, auth.administrador(session));
         assertEquals(usuario, auth.proprioOuAdministrador(session, 2));
     }
@@ -60,7 +60,7 @@ class AutenticacaoTests {
     private Usuario usuario() {
         Usuario usuario = new Usuario();
         usuario.setId(1);
-        usuario.setPerfil("USUARIO");
+        usuario.setPerfil(0);
         usuario.setSenha("hash");
         return usuario;
     }

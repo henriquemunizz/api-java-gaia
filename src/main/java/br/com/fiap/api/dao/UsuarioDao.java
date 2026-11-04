@@ -21,7 +21,7 @@ public class UsuarioDao {
         usuario.setId(rs.getInt("cd_usuario"));
         usuario.setNomeUsuario(rs.getString("nm_usuario"));
         usuario.setSenha(rs.getString("ds_senha"));
-        usuario.setPerfil(rs.getString("ds_perfil"));
+        usuario.setPerfil(rs.getInt("ds_perfil"));
         return usuario;
     }
 
@@ -61,10 +61,11 @@ public class UsuarioDao {
             conexao.setAutoCommit(false);
             try {
                 try (PreparedStatement stmt = conexao.prepareStatement(
-                        "insert into tb_usuario (cd_usuario,nm_usuario,ds_senha,ds_perfil) values (sq_tb_usuario.nextval,?,?,'USUARIO')",
+                        "insert into tb_usuario (cd_usuario,nm_usuario,ds_senha,ds_perfil) values (sq_tb_usuario.nextval,?,?,?)",
                         new String[]{"cd_usuario"})) {
                     stmt.setString(1, usuario.getNomeUsuario());
                     stmt.setString(2, usuario.getSenha());
+                    stmt.setInt(3, usuario.getPerfil());
                     stmt.executeUpdate();
                     try (ResultSet rs = stmt.getGeneratedKeys()) {
                         if (!rs.next()) throw new SQLException("ID do usuário não retornado");
@@ -77,7 +78,6 @@ public class UsuarioDao {
                     stmt.executeUpdate();
                 }
                 conexao.commit();
-                usuario.setPerfil("USUARIO");
             } catch (SQLException | RuntimeException e) {
                 conexao.rollback();
                 throw e;
@@ -86,7 +86,7 @@ public class UsuarioDao {
     }
 
     public void atualizar(Usuario usuario) throws SQLException, EntidadeNaoEncontradaException {
-        // Senha nula significa manter a atual; perfil nunca vem do cadastro/edição.
+        // Senha nula significa manter a atual; edição de conta não altera o perfil.
         String sql = usuario.getSenha() == null
                 ? "update tb_usuario set nm_usuario=? where cd_usuario=?"
                 : "update tb_usuario set nm_usuario=?, ds_senha=? where cd_usuario=?";

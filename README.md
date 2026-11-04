@@ -19,7 +19,9 @@
 5. Execute ApiApplication. Endereço padrão: http://localhost:8080.
 
 O SQL não é executado automaticamente. Não existem credenciais do professor no projeto.
-Se já criou as tabelas antes da inclusão da dificuldade, execute apenas atualizar_dificuldade.sql. As mudanças de gerenciamento de usuários e exclusão desta revisão não exigem novas alterações no banco.
+Se já criou as tabelas antes da inclusão da dificuldade, execute atualizar_dificuldade.sql. Se o perfil ainda é textual (ADMIN/USUARIO), pare a API e execute atualizar_perfil.sql no mesmo schema antes de iniciar esta versão. Não execute scripts.sql novamente em um banco existente.
+
+A migração converte ADMIN para 1 e USUARIO para 0, preservando IDs, nomes, senhas, progresso e históricos. A coluna ds_perfil passa a ser NUMBER(1), obrigatória, com padrão 0 e restrição para 0/1. A coluna ds_perfil_anterior conserva o texto anterior como respaldo da migração; não é usada pela API nem representa o perfil de novos cadastros. O bloco pode ser executado novamente após interrupção. DDL no Oracle confirma alterações automaticamente.
 
 ## Estrutura
 - model: Usuario, Missao, Recompensa, UsuarioMissao, UsuarioRecompensa e UsuarioProgresso, com associações e getters/setters.
@@ -33,7 +35,7 @@ Se já criou as tabelas antes da inclusão da dificuldade, execute apenas atuali
 ## Campos e regras
 | Tabela | Entrada manual | Automático |
 |---|---|---|
-| tb_usuario | nomeUsuario e senha | ID, hash de senha, perfil USUARIO |
+| tb_usuario | nomeUsuario, senha, perfil (0 = usuário, 1 = administrador) | ID, hash de senha |
 | tb_missao | nome, descricao, dificuldade, pontos, ativo | ID |
 | tb_recompensa | nome, descricao, pontos (custo), ativo | ID |
 | tb_usuario_missao | ação de concluir | ID, usuário, missão, pontos e data |
@@ -48,7 +50,13 @@ Conclusões e resgates gravam histórico e saldo na mesma transação. O bloquei
 O total ganho não diminui em resgates; somente o saldo diminui. O custo/pontos no histórico é o valor da época, não muda ao editar o cadastro.
 
 ## Login e administração
-Cadastro e login usam:
+Cadastro (POST /usuarios):
+```json
+{"nomeUsuario":"debora","senha":"UmaSenhaForte123","perfil":0}
+```
+Perfil é obrigatório: 0 = usuário, 1 = administrador. Conforme a regra deste projeto acadêmico, qualquer pessoa pode escolher administrador no cadastro e gerenciar missões e recompensas.
+
+Login (POST /usuarios/login) usa apenas:
 ```json
 {"nomeUsuario":"debora","senha":"UmaSenhaForte123"}
 ```
@@ -59,12 +67,7 @@ POST /usuarios/login cria uma sessão com cookie JSESSIONID. No front, use crede
 A conta é reconsultada a cada operação autenticada: exclusão da conta, troca de senha e mudança de perfil são verificadas mesmo em sessões antigas.
 Ao trocar sua própria senha, a sessão atual é mantida; outras sessões serão recusadas na próxima operação.
 
-O cadastro sempre cria USUARIO. Nem o cadastro nem a edição aceitam alterar perfil. Para criar o primeiro administrador, cadastre uma conta e execute:
-```sql
-update tb_usuario set ds_perfil='ADMIN' where nm_usuario='debora';
-commit;
-```
-O perfil atualizado é lido na próxima operação autenticada.
+As respostas de usuário retornam perfil numérico (0/1). O login usa o perfil persistido no Oracle; informar um perfil no login não concede acesso. A edição de conta não altera o perfil. A API mantém a autorização das operações administrativas e reconsulta o usuário em cada requisição autenticada.
 Mantenha uma conta ADMIN se precisar continuar administrando o sistema; a exclusão da própria conta também é permitida a administradores.
 
 ## Endpoints
@@ -129,4 +132,16 @@ Preservar Home, Integrantes, FAQ, Sobre e Contato. A aba Solução terá Missõe
 Na hospedagem, a configuração de domínio/cookie deve ser revisada conforme os endereços escolhidos: o padrão SameSite=Strict foi preparado para desenvolvimento no mesmo site (localhost), não para front e API em sites independentes.
 
 ## Verificação desta revisão
-Os vínculos entre modelos, DAOs, controllers e SQL foram revisados. Foram incluídos testes locais de senha, permissões, sessão após exclusão/troca de senha e regras de pontos/transação. Não foi possível concluir a compilação nem executar esses testes neste ambiente: o compilador não conseguiu carregar as dependências locais. A compilação no IntelliJ/Maven e a validação real das rotas no Oracle continuam pendentes. Nenhuma tabela foi criada ou alterada no seu servidor.
+Execute ./mvnw.cmd test com JAVA_HOME apontando para o JDK 21. Os testes cobrem senha, permissões, sessão após exclusão/troca de senha, regras de pontos/transação, validação dos perfis no cadastro e gravação numérica pelo JDBC. O Surefire carrega o agente do Mockito na inicialização, evitando anexação dinâmica durante os testes.
+
+Em 03/11/2026, `mvn clean package` aprovou os 10 testes e o empacotamento. A migração foi aplicada no Oracle local com comparação dos dados antes/depois: 3 contas, credenciais, 3 progressos, 5 conclusões, 2 resgates e os catálogos foram preservados. O React validou cadastro/login dos dois perfis e CRUD de uma missão e uma recompensa temporárias. As duas novas contas de teste foram mantidas; os dois itens temporários foram excluídos com autorização.
+
+## Chat da Gaia
+
+Execute `atualizar_chat.sql` uma vez no schema existente, após criar as tabelas principais. Conversas e mensagens pertencem ao usuário identificado pela sessão. A exclusão da conta também remove suas conversas.
+
+Importe `n8n/gaia-chat.json` no n8n. No nó **Modelo de IA**, selecione uma credencial ou Gateway credits e um modelo Gemini disponível. No webhook, selecione Header Auth com nome `X-Gaia-Key` e um segredo exclusivo da integração. Publique o workflow e copie a Production URL.
+
+Na configuração de execução da API, defina `GAIA_N8N_WEBHOOK_URL` com essa URL e `GAIA_N8N_WEBHOOK_KEY` com o mesmo segredo. Reinicie a API. O arquivo local .env.chat, quando usado para guardar o segredo, precisa ser carregado na configuração de execução. Ele é ignorado pelo Git.
+
+GET e POST em `/usuarios/me/conversas` listam e criam conversas. GET em `/usuarios/me/conversas/{id}/mensagens` consulta o histórico. POST na mesma rota recebe texto (até 2000 caracteres) e requisicaoId (UUID). A API envia ao n8n nome de usuário, progresso, catálogo ativo, pergunta e até 20 mensagens recentes. O webhook deve devolver um objeto JSON com o campo resposta. A API grava a pergunta e a resposta juntas após uma resposta válida.

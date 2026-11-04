@@ -31,7 +31,7 @@ public class UsuarioController {
     }
 
     @PostMapping
-    public ResponseEntity<UsuarioResponseDto> cadastrar(@Valid @RequestBody LoginRequestDto dto,
+    public ResponseEntity<UsuarioResponseDto> cadastrar(@Valid @RequestBody UsuarioCadastroRequestDto dto,
                                                          UriComponentsBuilder builder) throws SQLException {
         Usuario usuario = bo.cadastrar(dto);
         return ResponseEntity.created(builder.path("/usuarios/{id}").buildAndExpand(usuario.getId()).toUri())

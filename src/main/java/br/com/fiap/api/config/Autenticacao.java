@@ -41,14 +41,14 @@ public class Autenticacao {
 
     public Usuario administrador(HttpSession session) throws SQLException {
         Usuario usuario = usuario(session);
-        if (!"ADMIN".equals(usuario.getPerfil()))
+        if (usuario.getPerfil() != 1)
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acesso exclusivo do administrador");
         return usuario;
     }
 
     public Usuario proprioOuAdministrador(HttpSession session, int id) throws SQLException {
         Usuario usuario = usuario(session);
-        if (usuario.getId() != id && !"ADMIN".equals(usuario.getPerfil()))
+        if (usuario.getId() != id && usuario.getPerfil() != 1)
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acesso restrito à própria conta");
         return usuario;
     }
