@@ -37,9 +37,9 @@ public class ChatBo {
         List<Mensagem> historico = conversas.mensagens(conversa, usuario.getId());
         String texto = dto.getTexto().trim();
         String requisicao = dto.getRequisicaoId().toLowerCase(java.util.Locale.ROOT);
-        for (Mensagem m : historico) {
-            if (m.getRequisicaoId().equals(requisicao)) {
-                if (!m.getTexto().equals(texto))
+        for (Mensagem mensagem : historico) {
+            if (mensagem.getRequisicaoId().equals(requisicao)) {
+                if (!mensagem.getTexto().equals(texto))
                     throw new ResponseStatusException(HttpStatus.CONFLICT, "Identificador de envio já utilizado");
                 return historico;
             }
@@ -47,18 +47,23 @@ public class ChatBo {
         if (historico.size() >= 400)
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Esta conversa atingiu o limite. Comece uma nova conversa.");
 
-        Map<String, Object> contexto = Map.of(
-                "usuario", Map.of("nomeUsuario", usuario.getNomeUsuario()),
-                "progresso", mapper.map(progressos.buscar(usuario.getId()), ProgressoResponseDto.class),
-                "missoes", missoes.listar().stream().filter(m -> m.getAtivo() == 1).limit(100)
-                        .map(m -> mapper.map(m, MissaoResponseDto.class)).toList(),
-                "recompensas", recompensas.listar().stream().filter(r -> r.getAtivo() == 1).limit(100)
-                        .map(r -> mapper.map(r, RecompensaResponseDto.class)).toList(),
-                "historico", historico.stream().skip(Math.max(0, historico.size() - 20))
-                        .map(m -> Map.of("autor", m.getAutor(), "texto", m.getTexto())).toList(),
-                "mensagem", texto);
+        Map<String, Object> contexto = montarContexto(usuario, historico, texto);
         String resposta = n8n.responder(contexto);
         int ultima = historico.isEmpty() ? 0 : historico.get(historico.size() - 1).getId();
         return conversas.salvar(conversa, usuario.getId(), requisicao, texto, resposta, ultima);
+    }
+
+    private Map<String, Object> montarContexto(Usuario usuario, List<Mensagem> historico, String texto)
+            throws SQLException, EntidadeNaoEncontradaException {
+        return Map.of(
+                "usuario", Map.of("nomeUsuario", usuario.getNomeUsuario()),
+                "progresso", mapper.map(progressos.buscar(usuario.getId()), ProgressoResponseDto.class),
+                "missoes", missoes.listar().stream().filter(missao -> missao.getAtivo() == 1).limit(100)
+                        .map(missao -> mapper.map(missao, MissaoResponseDto.class)).toList(),
+                "recompensas", recompensas.listar().stream().filter(recompensa -> recompensa.getAtivo() == 1).limit(100)
+                        .map(recompensa -> mapper.map(recompensa, RecompensaResponseDto.class)).toList(),
+                "historico", historico.stream().skip(Math.max(0, historico.size() - 20))
+                        .map(mensagem -> Map.of("autor", mensagem.getAutor(), "texto", mensagem.getTexto())).toList(),
+                "mensagem", texto);
     }
 }

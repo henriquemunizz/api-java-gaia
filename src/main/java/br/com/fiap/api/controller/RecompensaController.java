@@ -20,33 +20,47 @@ public class RecompensaController {
     private final RecompensaDao dao;
     private final ModelMapper mapper;
     private final Autenticacao autenticacao;
-    public RecompensaController(RecompensaDao dao, ModelMapper mapper, Autenticacao autenticacao) { this.dao=dao; this.mapper=mapper; this.autenticacao=autenticacao; }
+
+    public RecompensaController(RecompensaDao dao, ModelMapper mapper, Autenticacao autenticacao) {
+        this.dao = dao;
+        this.mapper = mapper;
+        this.autenticacao = autenticacao;
+    }
+
     @GetMapping
     public List<RecompensaResponseDto> listar(HttpSession session) throws SQLException {
         autenticacao.usuario(session);
         return dao.listar().stream().map(item -> mapper.map(item, RecompensaResponseDto.class)).toList();
     }
+
     @GetMapping("/{id}")
     public RecompensaResponseDto buscar(@PathVariable int id, HttpSession session) throws SQLException, EntidadeNaoEncontradaException {
         autenticacao.usuario(session);
         return mapper.map(dao.buscar(id), RecompensaResponseDto.class);
     }
+
     @PostMapping
     public ResponseEntity<RecompensaResponseDto> cadastrar(@Valid @RequestBody RecompensaRequestDto dto, HttpSession session, UriComponentsBuilder builder) throws SQLException {
         autenticacao.administrador(session);
-        Recompensa item=mapper.map(dto,Recompensa.class);
+        Recompensa item = mapper.map(dto, Recompensa.class);
         dao.cadastrar(item);
-        return ResponseEntity.created(builder.path("/recompensas/{id}").buildAndExpand(item.getId()).toUri()).body(mapper.map(item,RecompensaResponseDto.class));
+        var uri = builder.path("/recompensas/{id}").buildAndExpand(item.getId()).toUri();
+        return ResponseEntity.created(uri).body(mapper.map(item, RecompensaResponseDto.class));
     }
+
     @PutMapping("/{id}")
     public ResponseEntity<Void> atualizar(@PathVariable int id, @Valid @RequestBody RecompensaRequestDto dto, HttpSession session) throws SQLException, EntidadeNaoEncontradaException {
         autenticacao.administrador(session);
-        Recompensa item=mapper.map(dto,Recompensa.class); item.setId(id); dao.atualizar(item);
+        Recompensa item = mapper.map(dto, Recompensa.class);
+        item.setId(id);
+        dao.atualizar(item);
         return ResponseEntity.ok().build();
     }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> remover(@PathVariable int id, HttpSession session) throws SQLException, EntidadeNaoEncontradaException {
-        autenticacao.administrador(session); dao.remover(id);
+        autenticacao.administrador(session);
+        dao.remover(id);
         return ResponseEntity.noContent().build();
     }
 }

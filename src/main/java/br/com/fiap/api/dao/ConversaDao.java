@@ -13,74 +13,85 @@ import java.util.List;
 @Repository
 public class ConversaDao {
     private final ConnectionFactory factory;
-    public ConversaDao(ConnectionFactory factory) { this.factory = factory; }
+
+    public ConversaDao(ConnectionFactory factory) {
+        this.factory = factory;
+    }
 
     public List<Conversa> listar(int usuario) throws SQLException {
-        try (Connection c = factory.getConnection();
-             PreparedStatement s = c.prepareStatement("select * from tb_conversa where cd_usuario=? order by cd_conversa desc")) {
-            s.setInt(1, usuario);
-            try (ResultSet r = s.executeQuery()) {
+        try (Connection conexao = factory.getConnection();
+             PreparedStatement stmt = conexao.prepareStatement("select * from tb_conversa where cd_usuario=? order by cd_conversa desc")) {
+            stmt.setInt(1, usuario);
+            try (ResultSet resultadoConsulta = stmt.executeQuery()) {
                 List<Conversa> lista = new ArrayList<>();
-                while (r.next()) lista.add(conversa(r));
+                while (resultadoConsulta.next()) {
+                    lista.add(conversa(resultadoConsulta));
+                }
                 return lista;
             }
         }
     }
 
-    private Conversa conversa(ResultSet r) throws SQLException {
+    private Conversa conversa(ResultSet resultadoConsulta) throws SQLException {
         Conversa conversa = new Conversa();
-        conversa.setId(r.getInt("cd_conversa"));
-        conversa.setTitulo(r.getString("nm_titulo"));
-        conversa.setData(r.getTimestamp("dt_criacao").toLocalDateTime().toString());
+        conversa.setId(resultadoConsulta.getInt("cd_conversa"));
+        conversa.setTitulo(resultadoConsulta.getString("nm_titulo"));
+        conversa.setData(resultadoConsulta.getTimestamp("dt_criacao").toLocalDateTime().toString());
         return conversa;
     }
 
     public Conversa criar(int usuario) throws SQLException {
-        try (Connection c = factory.getConnection();
-             PreparedStatement s = c.prepareStatement(
+        try (Connection conexao = factory.getConnection();
+             PreparedStatement stmt = conexao.prepareStatement(
                      "insert into tb_conversa (cd_conversa,cd_usuario) values (sq_tb_conversa.nextval,?)", new String[]{"cd_conversa"})) {
-            s.setInt(1, usuario);
-            s.executeUpdate();
-            try (ResultSet r = s.getGeneratedKeys()) {
-                if (!r.next()) throw new SQLException("ID da conversa não retornado");
-                return buscar(c, r.getInt(1), usuario, false);
+            stmt.setInt(1, usuario);
+            stmt.executeUpdate();
+            try (ResultSet resultadoConsulta = stmt.getGeneratedKeys()) {
+                if (!resultadoConsulta.next()) {
+                    throw new SQLException("ID da conversa não retornado");
+                }
+                return buscar(conexao, resultadoConsulta.getInt(1), usuario, false);
             }
         }
     }
 
-    private Conversa buscar(Connection c, int id, int usuario, boolean bloquear) throws SQLException {
+    private Conversa buscar(Connection conexao, int id, int usuario, boolean bloquear) throws SQLException {
         String sql = "select * from tb_conversa where cd_conversa=? and cd_usuario=?";
-        if (bloquear) sql += " for update";
-        try (PreparedStatement s = c.prepareStatement(sql)) {
-            s.setInt(1, id);
-            s.setInt(2, usuario);
-            try (ResultSet r = s.executeQuery()) {
-                if (!r.next()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Conversa não encontrada");
-                return conversa(r);
+        if (bloquear) {
+            sql += " for update";
+        }
+        try (PreparedStatement stmt = conexao.prepareStatement(sql)) {
+            stmt.setInt(1, id);
+            stmt.setInt(2, usuario);
+            try (ResultSet resultadoConsulta = stmt.executeQuery()) {
+                if (!resultadoConsulta.next()) {
+                    throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Conversa não encontrada");
+                }
+                return conversa(resultadoConsulta);
             }
         }
     }
 
     public List<Mensagem> mensagens(int id, int usuario) throws SQLException {
-        try (Connection c = factory.getConnection()) {
-            buscar(c, id, usuario, false);
-            return mensagens(c, id);
+        try (Connection conexao = factory.getConnection()) {
+            buscar(conexao, id, usuario, false);
+            return mensagens(conexao, id);
         }
     }
 
-    private List<Mensagem> mensagens(Connection c, int id) throws SQLException {
-        try (PreparedStatement s = c.prepareStatement("select * from tb_mensagem where cd_conversa=? order by cd_mensagem")) {
-            s.setInt(1, id);
-            try (ResultSet r = s.executeQuery()) {
+    private List<Mensagem> mensagens(Connection conexao, int id) throws SQLException {
+        try (PreparedStatement stmt = conexao.prepareStatement("select * from tb_mensagem where cd_conversa=? order by cd_mensagem")) {
+            stmt.setInt(1, id);
+            try (ResultSet resultadoConsulta = stmt.executeQuery()) {
                 List<Mensagem> lista = new ArrayList<>();
-                while (r.next()) {
-                    Mensagem m = new Mensagem();
-                    m.setId(r.getInt("cd_mensagem"));
-                    m.setAutor(r.getString("ds_autor"));
-                    m.setTexto(r.getString("ds_texto"));
-                    m.setRequisicaoId(r.getString("ds_requisicao"));
-                    m.setData(r.getTimestamp("dt_envio").toLocalDateTime().toString());
-                    lista.add(m);
+                while (resultadoConsulta.next()) {
+                    Mensagem mensagem = new Mensagem();
+                    mensagem.setId(resultadoConsulta.getInt("cd_mensagem"));
+                    mensagem.setAutor(resultadoConsulta.getString("ds_autor"));
+                    mensagem.setTexto(resultadoConsulta.getString("ds_texto"));
+                    mensagem.setRequisicaoId(resultadoConsulta.getString("ds_requisicao"));
+                    mensagem.setData(resultadoConsulta.getTimestamp("dt_envio").toLocalDateTime().toString());
+                    lista.add(mensagem);
                 }
                 return lista;
             }
@@ -89,49 +100,49 @@ public class ConversaDao {
 
     // Grava pergunta e resposta juntas. O bloqueio dura somente a gravação, nunca a chamada ao n8n.
     public List<Mensagem> salvar(int id, int usuario, String requisicao, String texto, String resposta, int ultimaMensagem) throws SQLException {
-        try (Connection c = factory.getConnection()) {
-            c.setAutoCommit(false);
+        try (Connection conexao = factory.getConnection()) {
+            conexao.setAutoCommit(false);
             try {
-                buscar(c, id, usuario, true);
-                List<Mensagem> atuais = mensagens(c, id);
-                for (Mensagem m : atuais) {
-                    if (m.getRequisicaoId().equals(requisicao)) {
-                        if (!m.getTexto().equals(texto))
+                buscar(conexao, id, usuario, true);
+                List<Mensagem> atuais = mensagens(conexao, id);
+                for (Mensagem mensagem : atuais) {
+                    if (mensagem.getRequisicaoId().equals(requisicao)) {
+                        if (!mensagem.getTexto().equals(texto))
                             throw new ResponseStatusException(HttpStatus.CONFLICT, "Identificador de envio já utilizado");
-                        c.commit();
+                        conexao.commit();
                         return atuais;
                     }
                 }
                 int ultimaAtual = atuais.isEmpty() ? 0 : atuais.get(atuais.size() - 1).getId();
                 if (ultimaAtual != ultimaMensagem)
                     throw new ResponseStatusException(HttpStatus.CONFLICT, "A conversa mudou em outra janela. Atualize antes de enviar novamente.");
-                inserir(c, id, requisicao, "usuario", texto);
-                inserir(c, id, requisicao, "gaia", resposta);
+                inserir(conexao, id, requisicao, "usuario", texto);
+                inserir(conexao, id, requisicao, "gaia", resposta);
                 if (atuais.isEmpty()) {
-                    try (PreparedStatement s = c.prepareStatement("update tb_conversa set nm_titulo=? where cd_conversa=?")) {
-                        s.setString(1, texto.substring(0, texto.offsetByCodePoints(0, Math.min(60, texto.codePointCount(0, texto.length())))));
-                        s.setInt(2, id);
-                        s.executeUpdate();
+                    try (PreparedStatement stmt = conexao.prepareStatement("update tb_conversa set nm_titulo=? where cd_conversa=?")) {
+                        stmt.setString(1, texto.substring(0, texto.offsetByCodePoints(0, Math.min(60, texto.codePointCount(0, texto.length())))));
+                        stmt.setInt(2, id);
+                        stmt.executeUpdate();
                     }
                 }
-                List<Mensagem> resultado = mensagens(c, id);
-                c.commit();
+                List<Mensagem> resultado = mensagens(conexao, id);
+                conexao.commit();
                 return resultado;
             } catch (SQLException | RuntimeException e) {
-                c.rollback();
+                conexao.rollback();
                 throw e;
             }
         }
     }
 
-    private void inserir(Connection c, int conversa, String requisicao, String autor, String texto) throws SQLException {
-        try (PreparedStatement s = c.prepareStatement(
+    private void inserir(Connection conexao, int conversa, String requisicao, String autor, String texto) throws SQLException {
+        try (PreparedStatement stmt = conexao.prepareStatement(
                 "insert into tb_mensagem (cd_mensagem,cd_conversa,ds_autor,ds_texto,ds_requisicao) values (sq_tb_mensagem.nextval,?,?,?,?)")) {
-            s.setInt(1, conversa);
-            s.setString(2, autor);
-            s.setString(3, texto);
-            s.setString(4, requisicao);
-            s.executeUpdate();
+            stmt.setInt(1, conversa);
+            stmt.setString(2, autor);
+            stmt.setString(3, texto);
+            stmt.setString(4, requisicao);
+            stmt.executeUpdate();
         }
     }
 }
